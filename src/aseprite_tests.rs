@@ -59,8 +59,8 @@ fn imports_untagged_aseprite_json_as_single_default_clip() {
     }
     "#;
 
-    let library = AnimationLibrary::from_aseprite_json("full_sheet", json)
-        .expect("import should succeed");
+    let library =
+        AnimationLibrary::from_aseprite_json("full_sheet", json).expect("import should succeed");
 
     assert_eq!(library.clips.len(), 1);
     assert!(library.states.is_empty());

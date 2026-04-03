@@ -1,9 +1,9 @@
 use bevy::prelude::*;
-use saddle_bevy_e2e::{action::Action, actions::assertions, scenario::Scenario};
 use saddle_animation_spritesheet::{
     AnimationController, AnimationLibrary, AnimationTarget, SpritesheetAnimationBundle,
     SpritesheetAnimator,
 };
+use saddle_bevy_e2e::{action::Action, actions::assertions, scenario::Scenario};
 
 use crate::{HeroMode, LabControl, LabDiagnostics, LabHero};
 

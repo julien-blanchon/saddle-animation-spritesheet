@@ -1,7 +1,9 @@
 use saddle_animation_spritesheet_example_support as support;
 
 use bevy::prelude::*;
-use saddle_animation_spritesheet::{AnimationController, AnimationTarget, SpritesheetAnimator, SpritesheetPlugin};
+use saddle_animation_spritesheet::{
+    AnimationController, AnimationTarget, SpritesheetAnimator, SpritesheetPlugin,
+};
 use support::{
     apply_example_defaults, main_library, make_demo_atlas, spawn_actor, spawn_demo_backdrop,
     spawn_demo_camera, spawn_overlay, write_overlay,

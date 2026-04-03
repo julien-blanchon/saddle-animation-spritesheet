@@ -344,7 +344,8 @@ fn refresh_diagnostics(
         .map(|state| state.as_str().to_string())
         .unwrap_or_default();
     diagnostics.hero_frame = hero.current_frame;
-    diagnostics.hero_playing = hero.playback_state == saddle_animation_spritesheet::PlaybackState::Playing;
+    diagnostics.hero_playing =
+        hero.playback_state == saddle_animation_spritesheet::PlaybackState::Playing;
     diagnostics.requested_mode = control.requested_mode.as_str().to_string();
 
     let mut min_progress: f32 = 1.0;

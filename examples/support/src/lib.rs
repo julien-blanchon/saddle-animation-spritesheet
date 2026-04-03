@@ -10,8 +10,8 @@ use bevy::{
 use saddle_animation_spritesheet::{
     AnimationClip, AnimationController, AnimationEventMarker, AnimationLibrary, AnimationState,
     AnimationTarget, AnimationTickPolicy, ClipFrame, FrameTiming, InterruptPolicy,
-    PendingRequestPolicy, PlaybackDirection, RepeatMode, SameTargetPolicy, SpritesheetAnimator,
-    SpritesheetAnimationBundle,
+    PendingRequestPolicy, PlaybackDirection, RepeatMode, SameTargetPolicy,
+    SpritesheetAnimationBundle, SpritesheetAnimator,
 };
 use saddle_pane::prelude::*;
 
@@ -108,8 +108,10 @@ pub fn install_pane(app: &mut App) {
         ));
     }
 
-    app.register_pane::<ExampleSpritesheetPane>()
-        .add_systems(Update, (sync_example_pane, update_example_pane_monitors).chain());
+    app.register_pane::<ExampleSpritesheetPane>().add_systems(
+        Update,
+        (sync_example_pane, update_example_pane_monitors).chain(),
+    );
 }
 
 pub fn spawn_demo_camera(commands: &mut Commands) {
@@ -273,10 +275,12 @@ pub fn main_library() -> AnimationLibrary {
         .add_state(AnimationState::new("idle", "idle_clip"))
         .add_state(AnimationState::new("walk", "walk_clip"))
         .add_state(AnimationState::new("use_tool", "use_tool_clip"))
-        .add_transition(saddle_animation_spritesheet::TransitionDefinition::finished(
-            saddle_animation_spritesheet::TransitionSource::State("use_tool".into()),
-            AnimationTarget::state("idle"),
-        ))
+        .add_transition(
+            saddle_animation_spritesheet::TransitionDefinition::finished(
+                saddle_animation_spritesheet::TransitionSource::State("use_tool".into()),
+                AnimationTarget::state("idle"),
+            ),
+        )
 }
 
 #[allow(dead_code)]

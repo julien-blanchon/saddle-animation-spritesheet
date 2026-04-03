@@ -85,7 +85,10 @@ fn setup(
 fn cycle_facing(
     time: Res<Time>,
     mut cycle: ResMut<DirectionCycle>,
-    mut query: Query<&mut saddle_animation_spritesheet::AnimationController, With<DirectionalActor>>,
+    mut query: Query<
+        &mut saddle_animation_spritesheet::AnimationController,
+        With<DirectionalActor>,
+    >,
 ) {
     let segment = (time.elapsed_secs() * 0.8).floor() as i32;
     let next = match segment.rem_euclid(4) {
@@ -149,8 +152,19 @@ fn directional_library() -> AnimationLibrary {
             AnimationClip::from_frames("right_clip", [ClipFrame::new(6), ClipFrame::new(7)])
                 .with_timing(FrameTiming::SecondsPerFrame(0.2)),
         )
-        .add_state(saddle_animation_spritesheet::AnimationState::new("down", "down_clip"))
-        .add_state(saddle_animation_spritesheet::AnimationState::new("up", "up_clip"))
-        .add_state(saddle_animation_spritesheet::AnimationState::new("left", "left_clip"))
-        .add_state(saddle_animation_spritesheet::AnimationState::new("right", "right_clip"))
+        .add_state(saddle_animation_spritesheet::AnimationState::new(
+            "down",
+            "down_clip",
+        ))
+        .add_state(saddle_animation_spritesheet::AnimationState::new(
+            "up", "up_clip",
+        ))
+        .add_state(saddle_animation_spritesheet::AnimationState::new(
+            "left",
+            "left_clip",
+        ))
+        .add_state(saddle_animation_spritesheet::AnimationState::new(
+            "right",
+            "right_clip",
+        ))
 }
