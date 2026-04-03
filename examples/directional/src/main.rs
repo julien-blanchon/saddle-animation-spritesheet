@@ -44,6 +44,7 @@ struct DirectionCycle {
 fn main() {
     let mut app = App::new();
     apply_example_defaults(&mut app, "spritesheet directional");
+    support::install_pane(&mut app);
     app.insert_resource(DirectionCycle {
         current: Facing::Down,
     });

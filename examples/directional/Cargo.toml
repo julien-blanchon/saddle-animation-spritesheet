@@ -8,6 +8,7 @@ publish = false
 bevy = "0.18"
 saddle-animation-spritesheet = { path = "../.." }
 saddle-animation-spritesheet-example-support = { path = "../support" }
+saddle-pane = { git = "https://github.com/julien-blanchon/saddle-pane" }
 
 [lints.clippy]
 too_many_arguments = "allow"

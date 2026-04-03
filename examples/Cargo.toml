@@ -2,6 +2,7 @@
 members = [
     "support",
     "basic",
+    "aseprite_import",
     "state_machine",
     "frame_events",
     "crowd_variation",

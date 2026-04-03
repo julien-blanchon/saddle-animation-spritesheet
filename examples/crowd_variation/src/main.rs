@@ -18,6 +18,7 @@ struct Overlay;
 fn main() {
     let mut app = App::new();
     apply_example_defaults(&mut app, "spritesheet crowd variation");
+    support::install_pane(&mut app);
     app.add_plugins(SpritesheetPlugin::default());
     app.add_systems(Startup, setup);
     app.add_systems(Update, update_overlay);

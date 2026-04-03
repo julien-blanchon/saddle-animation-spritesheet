@@ -22,6 +22,16 @@ Validation rules:
 - `minimum_elapsed_seconds` must be non-negative
 - exit windows must stay within `0.0 ..= 1.0`
 
+### Aseprite Import
+
+`AnimationLibrary::from_aseprite_json(name, json)` provides a lightweight importer for Aseprite JSON exports:
+
+- when frame tags exist, each tag becomes both a clip and a same-named state
+- the first tag becomes the library `default_target`
+- per-frame `duration` values are imported into `ClipFrame::duration_seconds`
+- Aseprite tag directions map to `PlaybackDirection::{Forward, Reverse, PingPong}`
+- when no tags exist, the importer creates a single `"default"` clip and uses that clip as the default target
+
 ## `AnimationClip`
 
 Concrete frame animation definition.

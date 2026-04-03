@@ -12,6 +12,8 @@ The crate splits authoring data from runtime state:
 - an internal `AnimatorRuntime` component stores the active sequence cursor, per-frame accumulator, and buffered messages
 - an internal `AnimationLibraryCaches` resource resolves validated libraries into playback-ready tables
 
+`AnimationLibrary` can be authored manually in Rust or imported from Aseprite JSON via `AnimationLibrary::from_aseprite_json`. The importer is deliberately narrow: it turns tag ranges and frame durations into the crate's native clip/state model, but it does not own atlas generation or sprite image loading.
+
 Consumers own the atlas image handle and `TextureAtlasLayout` handle. The crate only resolves clip-to-atlas indices and writes the chosen atlas index back to `Sprite`.
 
 ## System Ordering

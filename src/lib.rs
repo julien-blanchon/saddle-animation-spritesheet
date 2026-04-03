@@ -1,3 +1,4 @@
+mod aseprite;
 mod components;
 mod config;
 mod events;
@@ -5,6 +6,7 @@ mod systems;
 mod transition;
 mod util;
 
+pub use aseprite::AsepriteImportError;
 pub use components::{
     AnimationControlCommand, AnimationController, AnimationIssue, AnimationTickPolicy,
     PendingRequestPolicy, PlaybackState, SameTargetPolicy, SpritesheetAnimationBundle,

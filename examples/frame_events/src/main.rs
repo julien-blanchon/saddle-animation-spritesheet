@@ -26,6 +26,7 @@ struct EventPreview {
 fn main() {
     let mut app = App::new();
     apply_example_defaults(&mut app, "spritesheet frame events");
+    support::install_pane(&mut app);
     app.insert_resource(EventPreview {
         timer: Timer::from_seconds(1.6, TimerMode::Repeating),
         flashes: 0,

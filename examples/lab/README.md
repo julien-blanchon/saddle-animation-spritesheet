@@ -21,6 +21,7 @@ cargo run -p saddle-animation-spritesheet-lab
 cargo run -p saddle-animation-spritesheet-lab --features e2e -- spritesheet_smoke
 cargo run -p saddle-animation-spritesheet-lab --features e2e -- spritesheet_state_machine
 cargo run -p saddle-animation-spritesheet-lab --features e2e -- spritesheet_frame_events
+cargo run -p saddle-animation-spritesheet-lab --features e2e -- spritesheet_aseprite_import
 ```
 
 ## BRP / Debug

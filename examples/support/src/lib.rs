@@ -8,10 +8,12 @@ use bevy::{
     winit::WinitSettings,
 };
 use saddle_animation_spritesheet::{
-    AnimationClip, AnimationEventMarker, AnimationLibrary, AnimationState, AnimationTarget,
-    ClipFrame, FrameTiming, InterruptPolicy, PlaybackDirection, RepeatMode,
+    AnimationClip, AnimationController, AnimationEventMarker, AnimationLibrary, AnimationState,
+    AnimationTarget, AnimationTickPolicy, ClipFrame, FrameTiming, InterruptPolicy,
+    PendingRequestPolicy, PlaybackDirection, RepeatMode, SameTargetPolicy, SpritesheetAnimator,
     SpritesheetAnimationBundle,
 };
+use saddle_pane::prelude::*;
 
 const AUTO_EXIT_ENV: &str = "SPRITESHEET_AUTO_EXIT_SECONDS";
 const FRAME_SIZE: UVec2 = UVec2::new(24, 24);
@@ -23,6 +25,45 @@ struct AutoExitAfter(Timer);
 pub struct DemoAtlas {
     pub image: Handle<Image>,
     pub layout: Handle<TextureAtlasLayout>,
+}
+
+#[derive(Resource, Debug, Clone, PartialEq, Pane)]
+#[pane(title = "Spritesheet", position = "top-right")]
+pub struct ExampleSpritesheetPane {
+    #[pane(slider, min = 0.25, max = 3.0, step = 0.05)]
+    pub speed_multiplier: f32,
+    #[pane(slider, min = 0.0, max = 1.0, step = 1.0)]
+    pub visibility_policy_index: f32,
+    #[pane(slider, min = 0.0, max = 2.0, step = 1.0)]
+    pub pending_request_policy_index: f32,
+    #[pane(slider, min = 0.0, max = 1.0, step = 1.0)]
+    pub same_target_policy_index: f32,
+    #[pane(monitor)]
+    pub current_frame: f32,
+    #[pane(monitor)]
+    pub atlas_index: f32,
+    #[pane(monitor)]
+    pub completed_loops: f32,
+    #[pane(monitor)]
+    pub current_clip: String,
+    #[pane(monitor)]
+    pub playback_state: String,
+}
+
+impl Default for ExampleSpritesheetPane {
+    fn default() -> Self {
+        Self {
+            speed_multiplier: 1.0,
+            visibility_policy_index: 0.0,
+            pending_request_policy_index: 0.0,
+            same_target_policy_index: 0.0,
+            current_frame: 0.0,
+            atlas_index: 0.0,
+            completed_loops: 0.0,
+            current_clip: "none".to_string(),
+            playback_state: "Stopped".to_string(),
+        }
+    }
 }
 
 pub fn apply_example_defaults(app: &mut App, title: &str) {
@@ -54,6 +95,21 @@ pub fn apply_example_defaults(app: &mut App, title: &str) {
             std::process::exit(0);
         });
     }
+}
+
+pub fn install_pane(app: &mut App) {
+    if !app.is_plugin_added::<PanePlugin>() {
+        app.add_plugins((
+            bevy_flair::FlairPlugin,
+            bevy_input_focus::InputDispatchPlugin,
+            bevy_ui_widgets::UiWidgetsPlugins,
+            bevy_input_focus::tab_navigation::TabNavigationPlugin,
+            PanePlugin,
+        ));
+    }
+
+    app.register_pane::<ExampleSpritesheetPane>()
+        .add_systems(Update, (sync_example_pane, update_example_pane_monitors).chain());
 }
 
 pub fn spawn_demo_camera(commands: &mut Commands) {
@@ -272,4 +328,52 @@ fn auto_exit_after(
     if timer.0.tick(time.delta()).just_finished() {
         exit.write(AppExit::Success);
     }
+}
+
+fn sync_example_pane(
+    pane: Res<ExampleSpritesheetPane>,
+    mut controllers: Query<&mut AnimationController>,
+    mut animators: Query<&mut SpritesheetAnimator>,
+) {
+    let visibility_policy = match pane.visibility_policy_index.round() as i32 {
+        1 => AnimationTickPolicy::WhenVisible,
+        _ => AnimationTickPolicy::Always,
+    };
+    let pending_request_policy = match pane.pending_request_policy_index.round() as i32 {
+        1 => PendingRequestPolicy::KeepFirst,
+        2 => PendingRequestPolicy::Discard,
+        _ => PendingRequestPolicy::Replace,
+    };
+    let same_target_policy = match pane.same_target_policy_index.round() as i32 {
+        1 => SameTargetPolicy::Restart,
+        _ => SameTargetPolicy::KeepProgress,
+    };
+
+    for mut controller in &mut controllers {
+        controller.pending_request_policy = pending_request_policy;
+        controller.same_target_policy = same_target_policy;
+    }
+
+    for mut animator in &mut animators {
+        animator.speed_multiplier = pane.speed_multiplier.max(0.05);
+        animator.visibility_policy = visibility_policy;
+    }
+}
+
+fn update_example_pane_monitors(
+    mut pane: ResMut<ExampleSpritesheetPane>,
+    animators: Query<&SpritesheetAnimator>,
+) {
+    let Some(animator) = animators.iter().next() else {
+        return;
+    };
+
+    pane.current_frame = animator.current_frame as f32;
+    pane.atlas_index = animator.atlas_index as f32;
+    pane.completed_loops = animator.completed_loops as f32;
+    pane.current_clip = animator
+        .current_clip
+        .as_ref()
+        .map_or_else(|| "none".to_string(), |clip| clip.as_str().to_string());
+    pane.playback_state = format!("{:?}", animator.playback_state);
 }
