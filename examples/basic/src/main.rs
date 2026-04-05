@@ -5,7 +5,7 @@ use saddle_animation_spritesheet::{
     AnimationController, AnimationTarget, SpritesheetAnimator, SpritesheetPlugin,
 };
 use support::{
-    apply_example_defaults, main_library, make_demo_atlas, spawn_actor, spawn_demo_backdrop,
+    apply_example_defaults, gabe_library, load_gabe_atlas, spawn_actor, spawn_demo_backdrop,
     spawn_demo_camera, spawn_overlay, write_overlay,
 };
 
@@ -27,15 +27,15 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<saddle_animation_spritesheet::AnimationLibrary>>,
 ) {
     spawn_demo_camera(&mut commands);
     spawn_demo_backdrop(&mut commands);
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
-    let library = libraries.add(main_library());
+    let atlas = load_gabe_atlas(&asset_server, &mut layouts);
+    let library = libraries.add(gabe_library());
     let actor = spawn_actor(
         &mut commands,
         "Walker",
@@ -68,14 +68,14 @@ fn drive_walker(
 
     for (mut transform, mut controller, animator) in &mut query {
         if walk_weight.abs() > 0.25 {
-            controller.set_target(AnimationTarget::state("walk"));
+            controller.set_target(AnimationTarget::state("run"));
             transform.translation.x = walk_weight * 240.0;
             transform.scale.x = if walk_weight >= 0.0 { 7.0 } else { -7.0 };
         } else {
             controller.set_target(AnimationTarget::state("idle"));
             transform.translation.x = walk_weight * 80.0;
             transform.scale.x =
-                if animator.current_clip.as_ref().map(|clip| clip.as_str()) == Some("walk_clip") {
+                if animator.current_clip.as_ref().map(|clip| clip.as_str()) == Some("run_clip") {
                     transform.scale.x.signum() * 7.0
                 } else {
                     7.0
@@ -93,7 +93,7 @@ fn update_overlay(
         &mut text,
         "spritesheet basic",
         format!(
-            "A single actor swaps between idle and walk based on a simple motion signal.\nCurrent clip: {}\nFrame: {}  Atlas index: {}\nPlayback: {:?}",
+            "A single actor (Gabe) swaps between idle and run based on a simple motion signal.\nCurrent clip: {}\nFrame: {}  Atlas index: {}\nPlayback: {:?}",
             animator
                 .current_clip
                 .as_ref()

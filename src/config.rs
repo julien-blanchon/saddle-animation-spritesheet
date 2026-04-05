@@ -2,6 +2,8 @@ use std::{collections::HashSet, fmt, ops::RangeInclusive};
 
 use bevy::{asset::Asset, prelude::*};
 
+use crate::easing::Easing;
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Reflect)]
 #[reflect(Debug, Default, PartialEq, Hash)]
 pub struct AnimationClipId(pub String);
@@ -199,6 +201,7 @@ pub struct AnimationClip {
     pub repeat: RepeatMode,
     pub direction: PlaybackDirection,
     pub interrupt_policy: InterruptPolicy,
+    pub easing: Easing,
 }
 
 impl AnimationClip {
@@ -213,6 +216,7 @@ impl AnimationClip {
             repeat: RepeatMode::default(),
             direction: PlaybackDirection::default(),
             interrupt_policy: InterruptPolicy::default(),
+            easing: Easing::default(),
         }
     }
 
@@ -256,6 +260,41 @@ impl AnimationClip {
         self.interrupt_policy = interrupt_policy;
         self
     }
+
+    pub fn with_easing(mut self, easing: Easing) -> Self {
+        self.easing = easing;
+        self
+    }
+
+    /// Create a clip from a row in a grid-based sprite sheet.
+    ///
+    /// `columns` is the total number of columns in the grid.
+    /// `row` is the zero-based row index.
+    /// `frame_count` is how many frames to include from that row (starting at column 0).
+    pub fn from_row(
+        id: impl Into<AnimationClipId>,
+        columns: usize,
+        row: usize,
+        frame_count: usize,
+    ) -> Self {
+        let start = row * columns;
+        Self::from_indices(id, start..start + frame_count)
+    }
+
+    /// Create a clip from a column in a grid-based sprite sheet.
+    ///
+    /// `columns` is the total number of columns in the grid.
+    /// `column` is the zero-based column index.
+    /// `rows` is how many rows to include.
+    pub fn from_column(
+        id: impl Into<AnimationClipId>,
+        columns: usize,
+        column: usize,
+        rows: usize,
+    ) -> Self {
+        let indices: Vec<usize> = (0..rows).map(|row| row * columns + column).collect();
+        Self::from_indices(id, indices)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Reflect)]
@@ -265,6 +304,7 @@ pub struct PlaybackOverride {
     pub repeat: Option<RepeatMode>,
     pub direction: Option<PlaybackDirection>,
     pub interrupt_policy: Option<InterruptPolicy>,
+    pub easing: Option<Easing>,
 }
 
 #[derive(Clone, Debug, PartialEq, Reflect)]
@@ -301,6 +341,11 @@ impl AnimationState {
 
     pub fn with_interrupt_policy(mut self, interrupt_policy: InterruptPolicy) -> Self {
         self.playback.interrupt_policy = Some(interrupt_policy);
+        self
+    }
+
+    pub fn with_easing(mut self, easing: Easing) -> Self {
+        self.playback.easing = Some(easing);
         self
     }
 }

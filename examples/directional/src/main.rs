@@ -1,14 +1,10 @@
 use saddle_animation_spritesheet_example_support as support;
 
 use bevy::prelude::*;
-use saddle_animation_spritesheet::SpritesheetPlugin;
-use saddle_animation_spritesheet::{
-    AnimationClip, AnimationLibrary, AnimationTarget, AnimationTarget as Target, ClipFrame,
-    FrameTiming,
-};
+use saddle_animation_spritesheet::{AnimationTarget, SpritesheetPlugin};
 use support::{
-    apply_example_defaults, make_demo_atlas, spawn_actor, spawn_demo_backdrop, spawn_demo_camera,
-    spawn_overlay, write_overlay,
+    apply_example_defaults, kenney_directional_library, load_kenney_character_atlas, spawn_actor,
+    spawn_demo_backdrop, spawn_demo_camera, spawn_overlay, write_overlay,
 };
 
 #[derive(Component)]
@@ -56,15 +52,15 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<saddle_animation_spritesheet::AnimationLibrary>>,
 ) {
     spawn_demo_camera(&mut commands);
     spawn_demo_backdrop(&mut commands);
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
-    let library = libraries.add(directional_library());
+    let atlas = load_kenney_character_atlas(&asset_server, &mut layouts);
+    let library = libraries.add(kenney_directional_library());
 
     let actor = spawn_actor(
         &mut commands,
@@ -73,7 +69,7 @@ fn setup(
         library,
         AnimationTarget::state("down"),
         Vec3::new(0.0, -40.0, 0.0),
-        8.0,
+        5.0,
         Color::WHITE,
     );
     commands.entity(actor).insert(DirectionalActor);
@@ -101,12 +97,7 @@ fn cycle_facing(
     if cycle.current != next {
         cycle.current = next;
         for mut controller in &mut query {
-            controller.set_target(match cycle.current {
-                Facing::Down => Target::state("down"),
-                Facing::Left => Target::state("left"),
-                Facing::Up => Target::state("up"),
-                Facing::Right => Target::state("right"),
-            });
+            controller.set_target(AnimationTarget::state(cycle.current.as_str()));
         }
     }
 }
@@ -120,7 +111,7 @@ fn update_overlay(
         &mut text,
         "spritesheet directional",
         format!(
-            "The same actor cycles through directional state clips every ~1.25s.\n\nFacing: {}\nCurrent clip: {}\nFrame: {}\nAtlas index: {}\n",
+            "The Kenney character cycles through directional state clips every ~1.25s.\n\nFacing: {}\nCurrent clip: {}\nFrame: {}\nAtlas index: {}\n",
             facing.current.as_str(),
             actor
                 .current_clip
@@ -131,40 +122,4 @@ fn update_overlay(
             actor.atlas_index,
         ),
     );
-}
-
-fn directional_library() -> AnimationLibrary {
-    AnimationLibrary::new("demo_directional")
-        .with_default_target(AnimationTarget::state("down"))
-        .add_clip(
-            AnimationClip::from_frames("down_clip", [ClipFrame::new(0), ClipFrame::new(1)])
-                .with_timing(FrameTiming::SecondsPerFrame(0.2)),
-        )
-        .add_clip(
-            AnimationClip::from_frames("up_clip", [ClipFrame::new(2), ClipFrame::new(3)])
-                .with_timing(FrameTiming::SecondsPerFrame(0.2)),
-        )
-        .add_clip(
-            AnimationClip::from_frames("left_clip", [ClipFrame::new(4), ClipFrame::new(5)])
-                .with_timing(FrameTiming::SecondsPerFrame(0.2)),
-        )
-        .add_clip(
-            AnimationClip::from_frames("right_clip", [ClipFrame::new(6), ClipFrame::new(7)])
-                .with_timing(FrameTiming::SecondsPerFrame(0.2)),
-        )
-        .add_state(saddle_animation_spritesheet::AnimationState::new(
-            "down",
-            "down_clip",
-        ))
-        .add_state(saddle_animation_spritesheet::AnimationState::new(
-            "up", "up_clip",
-        ))
-        .add_state(saddle_animation_spritesheet::AnimationState::new(
-            "left",
-            "left_clip",
-        ))
-        .add_state(saddle_animation_spritesheet::AnimationState::new(
-            "right",
-            "right_clip",
-        ))
 }

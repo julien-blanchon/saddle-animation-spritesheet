@@ -5,8 +5,8 @@ use saddle_animation_spritesheet::{
     AnimationController, AnimationTarget, SpritesheetAnimator, SpritesheetPlugin, StartOffset,
 };
 use support::{
-    apply_example_defaults, main_library, make_demo_atlas, spawn_actor, spawn_demo_backdrop,
-    spawn_demo_camera, spawn_overlay, write_overlay,
+    apply_example_defaults, gabe_library, load_gabe_atlas, load_mani_atlas, mani_library,
+    spawn_actor, spawn_demo_backdrop, spawn_demo_camera, spawn_overlay, write_overlay,
 };
 
 #[derive(Component)]
@@ -27,37 +27,42 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<saddle_animation_spritesheet::AnimationLibrary>>,
 ) {
     spawn_demo_camera(&mut commands);
     spawn_demo_backdrop(&mut commands);
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
-    let library = libraries.add(main_library());
+    let gabe_atlas = load_gabe_atlas(&asset_server, &mut layouts);
+    let mani_atlas = load_mani_atlas(&asset_server, &mut layouts);
+    let gabe_lib = libraries.add(gabe_library());
+    let mani_lib = libraries.add(mani_library());
 
     for (index, x) in (-5..=5).enumerate() {
         let speed = 0.78 + index as f32 * 0.05;
-        let tint = Color::srgb(
-            0.82 + index as f32 * 0.01,
-            0.9 - index as f32 * 0.02,
-            1.0 - index as f32 * 0.03,
-        );
+        let use_mani = index % 2 == 1;
+        let atlas = if use_mani { &mani_atlas } else { &gabe_atlas };
+        let library = if use_mani {
+            mani_lib.clone()
+        } else {
+            gabe_lib.clone()
+        };
+
         let entity = spawn_actor(
             &mut commands,
             &format!("Crowd Member {}", index + 1),
-            &atlas,
-            library.clone(),
-            AnimationTarget::state("walk"),
+            atlas,
+            library,
+            AnimationTarget::state("run"),
             Vec3::new(x as f32 * 95.0, -110.0, 0.0),
             6.0,
-            tint,
+            Color::WHITE,
         );
         commands.entity(entity).insert((
             CrowdMember,
             AnimationController {
-                default_target: Some(AnimationTarget::state("walk")),
+                default_target: Some(AnimationTarget::state("run")),
                 start_offset: StartOffset::EntitySeeded,
                 ..default()
             },
@@ -93,7 +98,7 @@ fn update_overlay(
         &mut text,
         "spritesheet crowd variation",
         format!(
-            "Every actor shares the same library and atlas, but start offsets and speed multipliers prevent lockstep motion.\nEntities: {}\nProgress span: {:.2} .. {:.2}\nAverage speed multiplier: {:.2}",
+            "Gabe and Mani alternate across the crowd. Entity-seeded offsets and speed multipliers prevent lockstep.\nEntities: {}\nProgress span: {:.2} .. {:.2}\nAverage speed multiplier: {:.2}",
             count as u32, min_progress, max_progress, avg_speed,
         ),
     );

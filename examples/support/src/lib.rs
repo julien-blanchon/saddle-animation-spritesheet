@@ -295,6 +295,157 @@ pub fn prop_library() -> AnimationLibrary {
         .add_state(AnimationState::new("loop", "prop_clip"))
 }
 
+/// Load the Gabe idle-run sprite sheet (7 frames of 24x24).
+#[allow(dead_code)]
+pub fn load_gabe_atlas(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+) -> DemoAtlas {
+    let image = asset_server.load("gabe-idle-run.png");
+    let layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(24, 24),
+        7,
+        1,
+        None,
+        None,
+    ));
+    DemoAtlas { image, layout }
+}
+
+/// Load the Mani idle-run sprite sheet (7 frames of 24x24).
+#[allow(dead_code)]
+pub fn load_mani_atlas(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+) -> DemoAtlas {
+    let image = asset_server.load("mani-idle-run.png");
+    let layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(24, 24),
+        7,
+        1,
+        None,
+        None,
+    ));
+    DemoAtlas { image, layout }
+}
+
+/// Load the Kenney character sprite sheet (8x4 grid of 48x48).
+#[allow(dead_code)]
+pub fn load_kenney_character_atlas(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+) -> DemoAtlas {
+    let image = asset_server.load("kenney-character.png");
+    let layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(48, 48),
+        8,
+        4,
+        None,
+        None,
+    ));
+    DemoAtlas { image, layout }
+}
+
+/// Load the Kenney tiny dungeon tile sheet (12x11 grid of 16x16).
+#[allow(dead_code)]
+pub fn load_kenney_dungeon_atlas(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+) -> DemoAtlas {
+    let image = asset_server.load("kenney-tiny-dungeon.png");
+    let layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(16, 16),
+        12,
+        11,
+        None,
+        None,
+    ));
+    DemoAtlas { image, layout }
+}
+
+/// Animation library for Gabe sprite: idle (frames 0-1), run (frames 2-6),
+/// action one-shot with impact marker (frames 4-6).
+#[allow(dead_code)]
+pub fn gabe_library() -> AnimationLibrary {
+    AnimationLibrary::new("gabe")
+        .with_default_target(AnimationTarget::state("idle"))
+        .add_clip(
+            AnimationClip::from_indices("idle_clip", [0, 1])
+                .with_timing(FrameTiming::SecondsPerFrame(0.3)),
+        )
+        .add_clip(
+            AnimationClip::from_indices("run_clip", [2, 3, 4, 5, 6])
+                .with_timing(FrameTiming::FramesPerSecond(10.0)),
+        )
+        .add_clip(
+            AnimationClip::from_frames(
+                "action_clip",
+                [
+                    ClipFrame::new(4),
+                    ClipFrame::new(5).with_event(AnimationEventMarker::named("impact")),
+                    ClipFrame::new(6),
+                ],
+            )
+            .with_timing(FrameTiming::SecondsPerFrame(0.12))
+            .with_repeat(RepeatMode::Once)
+            .with_interrupt_policy(InterruptPolicy::LockUntilFinished),
+        )
+        .add_state(AnimationState::new("idle", "idle_clip"))
+        .add_state(AnimationState::new("run", "run_clip"))
+        .add_state(AnimationState::new("action", "action_clip"))
+        .add_transition(
+            saddle_animation_spritesheet::TransitionDefinition::finished(
+                saddle_animation_spritesheet::TransitionSource::State("action".into()),
+                AnimationTarget::state("idle"),
+            ),
+        )
+}
+
+/// Animation library for Mani sprite: same layout as Gabe.
+#[allow(dead_code)]
+pub fn mani_library() -> AnimationLibrary {
+    AnimationLibrary::new("mani")
+        .with_default_target(AnimationTarget::state("idle"))
+        .add_clip(
+            AnimationClip::from_indices("idle_clip", [0, 1])
+                .with_timing(FrameTiming::SecondsPerFrame(0.35)),
+        )
+        .add_clip(
+            AnimationClip::from_indices("run_clip", [2, 3, 4, 5, 6])
+                .with_timing(FrameTiming::FramesPerSecond(10.0)),
+        )
+        .add_state(AnimationState::new("idle", "idle_clip"))
+        .add_state(AnimationState::new("run", "run_clip"))
+}
+
+/// Animation library for Kenney character with 4-directional walk using rows.
+/// Row 0 = down, row 1 = right, row 2 = up, row 3 = left (8 columns per row).
+#[allow(dead_code)]
+pub fn kenney_directional_library() -> AnimationLibrary {
+    AnimationLibrary::new("kenney_directional")
+        .with_default_target(AnimationTarget::state("down"))
+        .add_clip(
+            AnimationClip::from_row("down_clip", 8, 0, 4)
+                .with_timing(FrameTiming::SecondsPerFrame(0.18)),
+        )
+        .add_clip(
+            AnimationClip::from_row("right_clip", 8, 1, 4)
+                .with_timing(FrameTiming::SecondsPerFrame(0.18)),
+        )
+        .add_clip(
+            AnimationClip::from_row("up_clip", 8, 2, 4)
+                .with_timing(FrameTiming::SecondsPerFrame(0.18)),
+        )
+        .add_clip(
+            AnimationClip::from_row("left_clip", 8, 3, 4)
+                .with_timing(FrameTiming::SecondsPerFrame(0.18)),
+        )
+        .add_state(AnimationState::new("down", "down_clip"))
+        .add_state(AnimationState::new("right", "right_clip"))
+        .add_state(AnimationState::new("up", "up_clip"))
+        .add_state(AnimationState::new("left", "left_clip"))
+}
+
 pub fn spawn_actor(
     commands: &mut Commands,
     name: &str,

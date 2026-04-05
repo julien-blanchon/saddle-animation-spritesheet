@@ -6,7 +6,7 @@ use saddle_animation_spritesheet::{
     SpritesheetPlugin,
 };
 use support::{
-    apply_example_defaults, main_library, make_demo_atlas, spawn_actor, spawn_demo_backdrop,
+    apply_example_defaults, gabe_library, load_gabe_atlas, spawn_actor, spawn_demo_backdrop,
     spawn_demo_camera, spawn_overlay, write_overlay,
 };
 
@@ -38,21 +38,21 @@ fn main() {
     });
     app.add_plugins(SpritesheetPlugin::default());
     app.add_systems(Startup, setup);
-    app.add_systems(Update, (trigger_use_tool, record_messages, update_overlay));
+    app.add_systems(Update, (trigger_action, record_messages, update_overlay));
     app.run();
 }
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<saddle_animation_spritesheet::AnimationLibrary>>,
 ) {
     spawn_demo_camera(&mut commands);
     spawn_demo_backdrop(&mut commands);
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
-    let library = libraries.add(main_library());
+    let atlas = load_gabe_atlas(&asset_server, &mut layouts);
+    let library = libraries.add(gabe_library());
     let actor = spawn_actor(
         &mut commands,
         "Action Actor",
@@ -69,7 +69,7 @@ fn setup(
     commands.entity(overlay).insert(Overlay);
 }
 
-fn trigger_use_tool(
+fn trigger_action(
     time: Res<Time>,
     mut cycle: ResMut<ActionCycle>,
     mut query: Query<&mut AnimationController, With<Actor>>,
@@ -79,7 +79,7 @@ fn trigger_use_tool(
     }
 
     for mut controller in &mut query {
-        controller.play_state_once("use_tool");
+        controller.play_state_once("action");
         controller.requested_target = Some(AnimationTarget::state("idle"));
     }
 }
@@ -112,7 +112,7 @@ fn update_overlay(
         &mut text,
         "spritesheet state machine",
         format!(
-            "A repeating trigger plays a locked one-shot, emits a frame event, then falls back to idle.\nCurrent clip: {}\nPlayback: {:?}\nClip changes: {}\nImpact markers: {}\nFinished messages: {}",
+            "A repeating trigger plays a locked one-shot action, emits a frame event, then falls back to idle.\nCurrent clip: {}\nPlayback: {:?}\nClip changes: {}\nImpact markers: {}\nFinished messages: {}",
             animator
                 .current_clip
                 .as_ref()

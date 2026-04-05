@@ -1,0 +1,13 @@
+[package]
+name = "saddle-animation-spritesheet-example-ui-animation"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bevy.workspace = true
+saddle-animation-spritesheet.workspace = true
+saddle-animation-spritesheet-example-support = { path = "../support" }
+
+[lints]
+workspace = true

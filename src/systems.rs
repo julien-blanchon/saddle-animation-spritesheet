@@ -16,6 +16,7 @@ use crate::{
         AnimationLibraryValidationError, AnimationState, AnimationStateId, AnimationTarget,
         InterruptPolicy, PlaybackDirection, RepeatMode, TransitionDefinition,
     },
+    easing::Easing,
     events::{AnimationChanged, AnimationEventFired, AnimationFinished, AnimationLooped},
     transition::{
         RequestedTransitionResult, select_finished_transition, select_requested_transition,
@@ -58,6 +59,7 @@ impl AnimationLibraryCaches {
 pub(crate) struct AnimatorRuntime {
     sequence_cursor: usize,
     accumulator_seconds: f32,
+    raw_elapsed_seconds: f32,
     finished_this_tick: bool,
     buffered_messages: Vec<BufferedMessage>,
 }
@@ -77,6 +79,7 @@ struct CachedPlayback {
     clip: AnimationClipId,
     repeat: RepeatMode,
     interrupt_policy: InterruptPolicy,
+    easing: Easing,
     sequence: Vec<CachedStep>,
     prefix_seconds: Vec<f32>,
     cycle_duration_seconds: f32,
@@ -101,6 +104,23 @@ impl CachedPlayback {
             .iter()
             .position(|step| step.logical_frame == logical_frame)
             .unwrap_or_default()
+    }
+
+    /// Find the sequence cursor and accumulator for a given absolute elapsed
+    /// time within the cycle.
+    #[allow(dead_code)]
+    fn cursor_at_elapsed(&self, elapsed: f32) -> (usize, f32) {
+        if self.sequence.is_empty() {
+            return (0, 0.0);
+        }
+        for (i, step) in self.sequence.iter().enumerate() {
+            let start = self.prefix_seconds[i];
+            let end = start + step.duration_seconds;
+            if elapsed < end || i + 1 == self.sequence.len() {
+                return (i, (elapsed - start).max(0.0));
+            }
+        }
+        (self.sequence.len() - 1, 0.0)
     }
 }
 
@@ -464,7 +484,25 @@ pub(crate) fn advance_time(
             continue;
         }
 
-        let mut remaining_seconds = scaled_delta;
+        // Apply easing by computing the effective delta from the easing curve.
+        // Instead of advancing linearly, we compute how much eased time has
+        // passed for the given raw delta.
+        let effective_delta = if matches!(playback.easing, Easing::Linear) {
+            scaled_delta
+        } else if playback.cycle_duration_seconds > f32::EPSILON {
+            let old_raw = runtime.raw_elapsed_seconds;
+            let new_raw = old_raw + scaled_delta;
+            let old_norm = clamp01(old_raw / playback.cycle_duration_seconds);
+            let new_norm = clamp01(new_raw / playback.cycle_duration_seconds);
+            let old_eased = playback.easing.apply(old_norm) * playback.cycle_duration_seconds;
+            let new_eased = playback.easing.apply(new_norm) * playback.cycle_duration_seconds;
+            (new_eased - old_eased).max(0.0)
+        } else {
+            scaled_delta
+        };
+        runtime.raw_elapsed_seconds += scaled_delta;
+
+        let mut remaining_seconds = effective_delta;
 
         while remaining_seconds > 0.0 {
             let step = playback.current_step(runtime.sequence_cursor);
@@ -488,6 +526,7 @@ pub(crate) fn advance_time(
                 match playback.repeat {
                     RepeatMode::Loop => {
                         animator.completed_loops += 1;
+                        runtime.raw_elapsed_seconds = 0.0;
                         runtime
                             .buffered_messages
                             .push(BufferedMessage::Looped(AnimationLooped {
@@ -654,49 +693,70 @@ pub(crate) fn emit_messages(
 pub(crate) fn write_sprite_frames(
     active: Option<Res<RuntimeActive>>,
     atlases: Res<Assets<TextureAtlasLayout>>,
-    mut query: Query<(Option<&mut Sprite>, &mut SpritesheetAnimator), With<AnimatorRuntime>>,
+    mut query: Query<
+        (
+            Option<&mut Sprite>,
+            Option<&mut ImageNode>,
+            &mut SpritesheetAnimator,
+        ),
+        With<AnimatorRuntime>,
+    >,
 ) {
     if active.is_none() {
         return;
     }
 
-    for (sprite, mut animator) in &mut query {
-        let Some(mut sprite) = sprite else {
+    for (sprite, image_node, mut animator) in &mut query {
+        let updated = if let Some(mut sprite) = sprite {
+            update_atlas(&atlases, sprite.texture_atlas.as_mut(), &mut animator)
+        } else if let Some(mut image_node) = image_node {
+            update_atlas(&atlases, image_node.texture_atlas.as_mut(), &mut animator)
+        } else {
             animator.last_issue = Some(AnimationIssue::MissingSprite);
             continue;
         };
 
-        let Some(texture_atlas) = sprite.texture_atlas.as_mut() else {
-            animator.last_issue = Some(AnimationIssue::MissingSpriteAtlas);
-            continue;
-        };
-
-        let Some(layout) = atlases.get(&texture_atlas.layout) else {
-            animator.last_issue = Some(AnimationIssue::MissingAtlasLayout);
-            continue;
-        };
-
-        if animator.atlas_index >= layout.len() {
-            animator.last_issue = Some(AnimationIssue::AtlasIndexOutOfRange);
-            continue;
-        }
-
-        if texture_atlas.index != animator.atlas_index {
-            texture_atlas.index = animator.atlas_index;
-        }
-
-        if matches!(
-            animator.last_issue,
-            Some(
-                AnimationIssue::MissingSprite
-                    | AnimationIssue::MissingSpriteAtlas
-                    | AnimationIssue::MissingAtlasLayout
-                    | AnimationIssue::AtlasIndexOutOfRange
+        if updated
+            && matches!(
+                animator.last_issue,
+                Some(
+                    AnimationIssue::MissingSprite
+                        | AnimationIssue::MissingSpriteAtlas
+                        | AnimationIssue::MissingAtlasLayout
+                        | AnimationIssue::AtlasIndexOutOfRange
+                )
             )
-        ) {
+        {
             animator.last_issue = None;
         }
     }
+}
+
+fn update_atlas(
+    atlases: &Assets<TextureAtlasLayout>,
+    texture_atlas: Option<&mut TextureAtlas>,
+    animator: &mut SpritesheetAnimator,
+) -> bool {
+    let Some(texture_atlas) = texture_atlas else {
+        animator.last_issue = Some(AnimationIssue::MissingSpriteAtlas);
+        return false;
+    };
+
+    let Some(layout) = atlases.get(&texture_atlas.layout) else {
+        animator.last_issue = Some(AnimationIssue::MissingAtlasLayout);
+        return false;
+    };
+
+    if animator.atlas_index >= layout.len() {
+        animator.last_issue = Some(AnimationIssue::AtlasIndexOutOfRange);
+        return false;
+    }
+
+    if texture_atlas.index != animator.atlas_index {
+        texture_atlas.index = animator.atlas_index;
+    }
+
+    true
 }
 
 fn build_playback(
@@ -717,6 +777,9 @@ fn build_playback(
     let interrupt_policy = playback_override
         .and_then(|override_| override_.interrupt_policy)
         .unwrap_or(clip.interrupt_policy);
+    let easing = playback_override
+        .and_then(|override_| override_.easing)
+        .unwrap_or(clip.easing);
 
     let step_duration = timing.seconds_per_frame();
     let base_steps = clip
@@ -746,6 +809,7 @@ fn build_playback(
         clip: clip.id.clone(),
         repeat,
         interrupt_policy,
+        easing,
         sequence,
         prefix_seconds,
         cycle_duration_seconds: elapsed_seconds,
@@ -912,6 +976,7 @@ fn switch_to_target(
 
     runtime.sequence_cursor = 0;
     runtime.accumulator_seconds = 0.0;
+    runtime.raw_elapsed_seconds = 0.0;
     runtime.finished_this_tick = false;
 
     if let Some(offset) = start_offset {

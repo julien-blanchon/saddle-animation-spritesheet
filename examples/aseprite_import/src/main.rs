@@ -5,28 +5,27 @@ use saddle_animation_spritesheet::{
     AnimationController, AnimationLibrary, AnimationTarget, SpritesheetAnimator, SpritesheetPlugin,
 };
 use support::{
-    apply_example_defaults, make_demo_atlas, spawn_actor, spawn_demo_backdrop, spawn_demo_camera,
+    apply_example_defaults, load_gabe_atlas, spawn_actor, spawn_demo_backdrop, spawn_demo_camera,
     spawn_overlay, write_overlay,
 };
 
+/// Embedded Aseprite JSON export describing tags over the 7-frame Gabe sprite sheet.
 const ASEPRITE_JSON: &str = r#"
 {
-  "frames": {
-    "frame_0": { "frame": { "x": 0, "y": 0, "w": 24, "h": 24 }, "duration": 220 },
-    "frame_1": { "frame": { "x": 24, "y": 0, "w": 24, "h": 24 }, "duration": 220 },
-    "frame_2": { "frame": { "x": 48, "y": 0, "w": 24, "h": 24 }, "duration": 100 },
-    "frame_3": { "frame": { "x": 72, "y": 0, "w": 24, "h": 24 }, "duration": 100 },
-    "frame_4": { "frame": { "x": 96, "y": 0, "w": 24, "h": 24 }, "duration": 100 },
-    "frame_5": { "frame": { "x": 120, "y": 0, "w": 24, "h": 24 }, "duration": 160 },
-    "frame_6": { "frame": { "x": 144, "y": 0, "w": 24, "h": 24 }, "duration": 140 },
-    "frame_7": { "frame": { "x": 168, "y": 0, "w": 24, "h": 24 }, "duration": 140 }
-  },
+  "frames": [
+    { "duration": 300 },
+    { "duration": 300 },
+    { "duration": 100 },
+    { "duration": 100 },
+    { "duration": 100 },
+    { "duration": 100 },
+    { "duration": 100 }
+  ],
   "meta": {
-    "size": { "w": 192, "h": 24 },
+    "size": { "w": 168, "h": 24 },
     "frameTags": [
       { "name": "idle", "from": 0, "to": 1, "direction": "pingpong" },
-      { "name": "walk", "from": 2, "to": 4, "direction": "forward" },
-      { "name": "flare", "from": 5, "to": 7, "direction": "forward" }
+      { "name": "run", "from": 2, "to": 6, "direction": "forward" }
     ]
   }
 }
@@ -56,7 +55,7 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<AnimationLibrary>>,
 ) {
@@ -87,7 +86,7 @@ fn setup(
         Transform::from_xyz(0.0, -164.0, -10.0),
     ));
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
+    let atlas = load_gabe_atlas(&asset_server, &mut layouts);
     let library = libraries.add(
         AnimationLibrary::from_aseprite_json("lantern_keeper", ASEPRITE_JSON)
             .expect("embedded Aseprite JSON should parse"),
@@ -123,7 +122,7 @@ fn drive_scene_cycle(
     }
 
     cycle.segment = next_segment;
-    let phase = next_segment.rem_euclid(3);
+    let phase = next_segment.rem_euclid(2);
 
     for (mut transform, mut controller) in &mut query {
         match phase {
@@ -131,13 +130,9 @@ fn drive_scene_cycle(
                 controller.set_target(AnimationTarget::state("idle"));
                 transform.scale.x = 8.5;
             }
-            1 => {
-                controller.set_target(AnimationTarget::state("walk"));
-                transform.scale.x = -8.5;
-            }
             _ => {
-                controller.play_state_once("flare");
-                transform.scale.x = 8.5;
+                controller.set_target(AnimationTarget::state("run"));
+                transform.scale.x = -8.5;
             }
         }
     }
@@ -152,7 +147,7 @@ fn update_overlay(
         &mut text,
         "spritesheet aseprite import",
         format!(
-            "This scene imports clip/state tags directly from embedded Aseprite JSON.\n\nCurrent clip: {}\nCurrent state: {}\nFrame: {}\nAtlas index: {}\nLoops: {}\nPlayback: {:?}",
+            "This scene imports clip/state tags from embedded Aseprite JSON over the Gabe sprite.\n\nCurrent clip: {}\nCurrent state: {}\nFrame: {}\nAtlas index: {}\nLoops: {}\nPlayback: {:?}",
             animator
                 .current_clip
                 .as_ref()

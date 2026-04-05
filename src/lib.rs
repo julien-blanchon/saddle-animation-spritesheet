@@ -1,6 +1,7 @@
 mod aseprite;
 mod components;
 mod config;
+mod easing;
 mod events;
 mod systems;
 mod transition;
@@ -18,6 +19,7 @@ pub use config::{
     FrameTiming, InterruptPolicy, NormalizedTimeWindow, PlaybackDirection, PlaybackOverride,
     RepeatMode, TransitionDefinition, TransitionSource, TransitionTrigger,
 };
+pub use easing::{Easing, EasingVariety};
 pub use events::{AnimationChanged, AnimationEventFired, AnimationFinished, AnimationLooped};
 
 use bevy::{
@@ -104,6 +106,8 @@ impl Plugin for SpritesheetPlugin {
             .register_type::<TransitionDefinition>()
             .register_type::<TransitionSource>()
             .register_type::<TransitionTrigger>()
+            .register_type::<Easing>()
+            .register_type::<EasingVariety>()
             .add_systems(self.activate_schedule, systems::activate_players)
             .add_systems(self.deactivate_schedule, systems::deactivate_players)
             .configure_sets(

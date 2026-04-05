@@ -5,7 +5,7 @@ use saddle_animation_spritesheet::{
     AnimationController, AnimationEventFired, AnimationTarget, SpritesheetPlugin,
 };
 use support::{
-    apply_example_defaults, main_library, make_demo_atlas, spawn_actor, spawn_demo_backdrop,
+    apply_example_defaults, gabe_library, load_gabe_atlas, spawn_actor, spawn_demo_backdrop,
     spawn_demo_camera, spawn_overlay, write_overlay,
 };
 
@@ -50,15 +50,15 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut images: ResMut<Assets<Image>>,
+    asset_server: Res<AssetServer>,
     mut layouts: ResMut<Assets<TextureAtlasLayout>>,
     mut libraries: ResMut<Assets<saddle_animation_spritesheet::AnimationLibrary>>,
 ) {
     spawn_demo_camera(&mut commands);
     spawn_demo_backdrop(&mut commands);
 
-    let atlas = make_demo_atlas(&mut images, &mut layouts);
-    let library = libraries.add(main_library());
+    let atlas = load_gabe_atlas(&asset_server, &mut layouts);
+    let library = libraries.add(gabe_library());
     let actor = spawn_actor(
         &mut commands,
         "Frame Event Actor",
@@ -92,7 +92,7 @@ fn trigger_action(
     }
 
     for mut controller in &mut query {
-        controller.play_state_once("use_tool");
+        controller.play_state_once("action");
         controller.requested_target = Some(AnimationTarget::state("idle"));
     }
 }

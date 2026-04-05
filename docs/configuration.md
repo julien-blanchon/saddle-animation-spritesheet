@@ -44,6 +44,7 @@ Concrete frame animation definition.
 | `repeat` | `Loop` | `Loop`, `Once` | Whether the sequence repeats or finishes |
 | `direction` | `Forward` | `Forward`, `Reverse`, `PingPong` | Expands the runtime playback sequence |
 | `interrupt_policy` | `Interruptible` | `Interruptible`, `LockUntilFinished` | Whether blocked requests are allowed to interrupt the clip |
+| `easing` | `Linear` | `Linear`, `In(variety)`, `Out(variety)`, `InOut(variety)` | Redistributes time across frames using the easing curve |
 
 Additional validation:
 
@@ -89,6 +90,30 @@ Per-state override block.
 | `repeat` | `None` | valid `RepeatMode` | Replaces clip repeat mode |
 | `direction` | `None` | valid `PlaybackDirection` | Replaces clip direction |
 | `interrupt_policy` | `None` | valid `InterruptPolicy` | Replaces clip interrupt behavior |
+| `easing` | `None` | valid `Easing` | Replaces clip easing |
+
+## `Easing`
+
+Easing remaps the linear progress `[0, 1]` through a curve, changing which frames are displayed for longer or shorter durations. This does **not** interpolate between frames — it redistributes the time spent on each frame.
+
+| Variant | Effect |
+| --- | --- |
+| `Linear` | Constant speed (default) |
+| `In(variety)` | Slow start, fast finish |
+| `Out(variety)` | Fast start, slow finish |
+| `InOut(variety)` | Slow at both ends |
+
+### `EasingVariety`
+
+| Variety | Curve |
+| --- | --- |
+| `Quadratic` | `t^2` |
+| `Cubic` | `t^3` |
+| `Quartic` | `t^4` |
+| `Quintic` | `t^5` |
+| `Exponential` | `2^(10(t-1))` |
+| `Circular` | `1 - sqrt(1 - t^2)` |
+| `Sin` | `1 - cos(t * pi/2)` |
 
 ## `TransitionDefinition`
 

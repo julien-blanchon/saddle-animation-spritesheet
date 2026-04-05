@@ -7,6 +7,9 @@ members = [
     "frame_events",
     "crowd_variation",
     "directional",
+    "character_animation",
+    "easing_showcase",
+    "ui_animation",
     "lab",
 ]
 resolver = "3"

@@ -65,6 +65,8 @@ fn setup(
 | `AnimationState` / `PlaybackOverride` | Named logical state that points at a clip and can override clip playback defaults |
 | `AnimationController` | External control surface for requested targets, commands, queue policy, start offsets, and same-target behavior |
 | `SpritesheetAnimator` | Runtime status: current target, state, clip, logical frame, atlas index, elapsed time, loop count, and last issue |
+| `AnimationClip::from_row` / `from_column` | Grid-layout helpers for extracting clips from row-based or column-based sprite sheets |
+| `Easing` / `EasingVariety` | Rich easing curves (Linear, Quadratic, Cubic, Quartic, Quintic, Exponential, Circular, Sin, with In/Out/InOut) |
 | `AnimationLibrary::from_aseprite_json` | Imports Aseprite-exported JSON into clips/states using tag ranges and per-frame durations |
 | `AnimationEventFired` | Buffered message emitted when the runtime crosses a frame marker |
 | `AnimationLooped` / `AnimationFinished` / `AnimationChanged` | Buffered lifecycle messages for loop completion, one-shot completion, and target/clip changes |
@@ -143,16 +145,19 @@ Important v0.1 behavior:
 
 ## Examples
 
-Every shipped example now includes `saddle-pane` controls for playback policy, timing, and live runtime monitors.
+Every shipped example uses **real sprite sheet assets** (Gabe, Mani, Kenney character, Kenney dungeon tiles) and includes `saddle-pane` controls for playback policy, timing, and live runtime monitors.
 
 | Example | Purpose | Run |
 | --- | --- | --- |
-| `basic` | Minimal idle/walk selection over one atlas and one actor | `cargo run -p saddle-animation-spritesheet-example-basic` |
-| `aseprite_import` | Embedded Aseprite JSON import driving a small scene with imported state tags | `cargo run -p saddle-animation-spritesheet-example-aseprite-import` |
-| `state_machine` | Locked one-shot with automatic fallback and lifecycle messages | `cargo run -p saddle-animation-spritesheet-example-state-machine` |
-| `frame_events` | Event markers driving reactive visuals without hardcoded callbacks | `cargo run -p saddle-animation-spritesheet-example-frame-events` |
-| `directional` | Direction-based state switching across four directional clips | `cargo run -p saddle-animation-spritesheet-example-directional` |
-| `crowd_variation` | Shared atlas + library with entity-seeded offsets and speed variation | `cargo run -p saddle-animation-spritesheet-example-crowd-variation` |
+| `basic` | Gabe idle/run selection driven by a simple motion signal | `cargo run -p saddle-animation-spritesheet-example-basic` |
+| `character_animation` | Keyboard-controlled Gabe + auto-patrolling Mani with action one-shot | `cargo run -p saddle-animation-spritesheet-example-character-animation` |
+| `state_machine` | Locked one-shot action with automatic fallback and lifecycle messages | `cargo run -p saddle-animation-spritesheet-example-state-machine` |
+| `frame_events` | Event markers driving reactive beacon flash on impact | `cargo run -p saddle-animation-spritesheet-example-frame-events` |
+| `directional` | Kenney character cycling through four directional clips | `cargo run -p saddle-animation-spritesheet-example-directional` |
+| `crowd_variation` | Gabe and Mani alternating across a crowd with entity-seeded offsets | `cargo run -p saddle-animation-spritesheet-example-crowd-variation` |
+| `easing_showcase` | Side-by-side comparison of all easing curves on the same clip | `cargo run -p saddle-animation-spritesheet-example-easing-showcase` |
+| `ui_animation` | Animated UI ImageNode elements using Kenney dungeon tile sprite sheets | `cargo run -p saddle-animation-spritesheet-example-ui-animation` |
+| `aseprite_import` | Embedded Aseprite JSON import over the Gabe sprite sheet | `cargo run -p saddle-animation-spritesheet-example-aseprite-import` |
 
 ## Crate-Local Lab
 
@@ -175,7 +180,7 @@ cargo run -p saddle-animation-spritesheet-lab --features e2e -- spritesheet_asep
 
 Current limitations:
 
-- the runtime writes atlas indices for `Sprite`; UI node support is deferred
+- the runtime writes atlas indices for `Sprite` and `ImageNode` (UI elements are supported)
 - transitions are instant in v0.1; there is no frame blending or cross-fade
 - `from_aseprite_json` is intentionally lightweight: it imports frame durations and tag ranges, but does not own atlas-image generation or automatic event-marker authoring
 - visibility-aware ticking is limited to `Always` vs `WhenVisible`
