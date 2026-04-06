@@ -346,6 +346,24 @@ pub fn load_kenney_character_atlas(
     DemoAtlas { image, layout }
 }
 
+/// Load the Kenney character directional sprite sheet (4x4 grid of 24x24).
+/// Rows: 0=down, 1=right, 2=up, 3=left.  Columns: 4 walk frames.
+#[allow(dead_code)]
+pub fn load_kenney_directional_atlas(
+    asset_server: &AssetServer,
+    layouts: &mut Assets<TextureAtlasLayout>,
+) -> DemoAtlas {
+    let image = asset_server.load("kenney-character-directional.png");
+    let layout = layouts.add(TextureAtlasLayout::from_grid(
+        UVec2::new(24, 24),
+        4,
+        4,
+        None,
+        None,
+    ));
+    DemoAtlas { image, layout }
+}
+
 /// Load the Kenney tiny dungeon tile sheet (12x11 grid of 16x16).
 #[allow(dead_code)]
 pub fn load_kenney_dungeon_atlas(
@@ -419,25 +437,25 @@ pub fn mani_library() -> AnimationLibrary {
 }
 
 /// Animation library for Kenney character with 4-directional walk using rows.
-/// Row 0 = down, row 1 = right, row 2 = up, row 3 = left (8 columns per row).
+/// Row 0 = down, row 1 = right, row 2 = up, row 3 = left (4 columns per row).
 #[allow(dead_code)]
 pub fn kenney_directional_library() -> AnimationLibrary {
     AnimationLibrary::new("kenney_directional")
         .with_default_target(AnimationTarget::state("down"))
         .add_clip(
-            AnimationClip::from_row("down_clip", 8, 0, 4)
+            AnimationClip::from_row("down_clip", 4, 0, 4)
                 .with_timing(FrameTiming::SecondsPerFrame(0.18)),
         )
         .add_clip(
-            AnimationClip::from_row("right_clip", 8, 1, 4)
+            AnimationClip::from_row("right_clip", 4, 1, 4)
                 .with_timing(FrameTiming::SecondsPerFrame(0.18)),
         )
         .add_clip(
-            AnimationClip::from_row("up_clip", 8, 2, 4)
+            AnimationClip::from_row("up_clip", 4, 2, 4)
                 .with_timing(FrameTiming::SecondsPerFrame(0.18)),
         )
         .add_clip(
-            AnimationClip::from_row("left_clip", 8, 3, 4)
+            AnimationClip::from_row("left_clip", 4, 3, 4)
                 .with_timing(FrameTiming::SecondsPerFrame(0.18)),
         )
         .add_state(AnimationState::new("down", "down_clip"))
