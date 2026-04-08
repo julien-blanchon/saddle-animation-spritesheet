@@ -3,7 +3,7 @@ use saddle_animation_spritesheet::{
     AnimationController, AnimationLibrary, AnimationTarget, SpritesheetAnimationBundle,
     SpritesheetAnimator,
 };
-use saddle_bevy_e2e::{action::Action, actions::assertions, scenario::Scenario};
+use saddle_bevy_e2e::{action::Action, actions::{assertions, inspect}, scenario::Scenario};
 
 use crate::{HeroMode, LabControl, LabDiagnostics, LabHero};
 
@@ -45,6 +45,7 @@ pub fn list_scenarios() -> Vec<&'static str> {
         "spritesheet_directional",
         "spritesheet_crowd_variation",
         "spritesheet_easing",
+        "spritesheet_character_motion",
     ]
 }
 
@@ -58,6 +59,7 @@ pub fn scenario_by_name(name: &str) -> Option<Scenario> {
         "spritesheet_directional" => Some(build_directional()),
         "spritesheet_crowd_variation" => Some(build_crowd_variation()),
         "spritesheet_easing" => Some(build_easing()),
+        "spritesheet_character_motion" => Some(build_character_motion()),
         _ => None,
     }
 }
@@ -409,5 +411,55 @@ fn build_aseprite_import() -> Scenario {
         .then(Action::Screenshot("spritesheet_aseprite_walk".into()))
         .then(Action::WaitFrames(1))
         .then(assertions::log_summary("spritesheet_aseprite_import summary"))
+        .build()
+}
+
+fn build_character_motion() -> Scenario {
+    Scenario::builder("spritesheet_character_motion")
+        .description(
+            "Drive the hero through a manual walk loop and a one-shot tool animation, mirroring the interactive character-animation example through the lab control surface.",
+        )
+        .then(Action::WaitFrames(30))
+        .then(set_mode(HeroMode::Walk))
+        .then(Action::WaitUntil {
+            label: "hero entered walk mode".into(),
+            condition: Box::new(|world: &World| {
+                world
+                    .get_resource::<LabDiagnostics>()
+                    .is_some_and(|diagnostics| diagnostics.hero_state == "walk")
+            }),
+            max_frames: 90,
+        })
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "walk mode is active",
+            |diagnostics| diagnostics.requested_mode == "walk"
+                && diagnostics.hero_state == "walk"
+                && diagnostics.hero_playing,
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "spritesheet_character_motion_walk",
+        ))
+        .then(Action::Screenshot("spritesheet_character_motion_walk".into()))
+        .then(Action::WaitFrames(1))
+        .then(set_mode(HeroMode::UseTool))
+        .then(Action::WaitUntil {
+            label: "tool one-shot played".into(),
+            condition: Box::new(|world: &World| {
+                world
+                    .get_resource::<LabDiagnostics>()
+                    .is_some_and(|diagnostics| diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip")
+            }),
+            max_frames: 180,
+        })
+        .then(assertions::resource_satisfies::<LabDiagnostics>(
+            "tool one-shot completed and returned to idle",
+            |diagnostics| diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip",
+        ))
+        .then(inspect::log_resource::<LabDiagnostics>(
+            "spritesheet_character_motion_tool",
+        ))
+        .then(Action::Screenshot("spritesheet_character_motion_tool".into()))
+        .then(Action::WaitFrames(1))
+        .then(assertions::log_summary("spritesheet_character_motion"))
         .build()
 }
