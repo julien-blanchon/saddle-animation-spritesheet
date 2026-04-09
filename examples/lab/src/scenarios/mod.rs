@@ -5,7 +5,10 @@ use saddle_animation_spritesheet::{
 };
 use saddle_bevy_e2e::{action::Action, actions::{assertions, inspect}, scenario::Scenario};
 
-use crate::{HeroMode, LabControl, LabDiagnostics, LabHero};
+use crate::{HeroMode, LabDiagnostics, LabHero};
+use crate::lab_e2e_support::{
+    request_mode, wait_for_impact_marker, wait_for_idle_after_one_shot, wait_for_mode,
+};
 
 #[derive(Component)]
 struct AsepriteImportedHero;
@@ -64,14 +67,6 @@ pub fn scenario_by_name(name: &str) -> Option<Scenario> {
     }
 }
 
-fn set_mode(mode: HeroMode) -> Action {
-    Action::Custom(Box::new(move |world: &mut World| {
-        let mut control = world.resource_mut::<LabControl>();
-        control.auto = false;
-        control.request(mode);
-    }))
-}
-
 fn build_smoke() -> Scenario {
     Scenario::builder("spritesheet_smoke")
         .description(
@@ -99,24 +94,14 @@ fn build_state_machine() -> Scenario {
             "Drive the hero into a locked one-shot, assert the clip changes to use_tool, then verify it falls back to idle and capture both checkpoints.",
         )
         .then(Action::WaitFrames(30))
-        .then(set_mode(HeroMode::UseTool))
+        .then(request_mode(HeroMode::UseTool))
         .then(Action::WaitFrames(2))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "hero entered the one-shot clip",
             |diagnostics| diagnostics.hero_clip == "use_tool_clip",
         ))
         .then(Action::Screenshot("spritesheet_state_machine_enter".into()))
-        .then(Action::WaitUntil {
-            label: "hero returned to idle".into(),
-            condition: Box::new(|world: &World| {
-                world
-                    .get_resource::<LabDiagnostics>()
-                    .is_some_and(|diagnostics| {
-                        diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip"
-                    })
-            }),
-            max_frames: 120,
-        })
+        .then(wait_for_idle_after_one_shot(120))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "hero returned to idle after impact",
             |diagnostics| diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip",
@@ -133,20 +118,8 @@ fn build_frame_events() -> Scenario {
             "Trigger the one-shot, wait until the impact marker fires, assert the marker payload landed on frame 1, and capture the reactive frame.",
         )
         .then(Action::WaitFrames(30))
-        .then(set_mode(HeroMode::UseTool))
-        .then(Action::WaitUntil {
-            label: "impact marker fired".into(),
-            condition: Box::new(|world: &World| {
-                world
-                    .get_resource::<LabDiagnostics>()
-                    .is_some_and(|diagnostics| {
-                        diagnostics.impact_events >= 1
-                            && diagnostics.last_event == "impact"
-                            && diagnostics.last_event_frame == 1
-                    })
-            }),
-            max_frames: 120,
-        })
+        .then(request_mode(HeroMode::UseTool))
+        .then(wait_for_impact_marker(120))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "impact marker fired on frame 1",
             |diagnostics| {
@@ -205,8 +178,8 @@ fn build_directional() -> Scenario {
         )
         .then(Action::WaitFrames(30))
         // Start from idle
-        .then(set_mode(HeroMode::Idle))
-        .then(Action::WaitFrames(4))
+        .then(request_mode(HeroMode::Idle))
+        .then(wait_for_mode(HeroMode::Idle, 90))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "hero starts in idle state",
             |diagnostics| {
@@ -216,8 +189,8 @@ fn build_directional() -> Scenario {
         .then(Action::Screenshot("directional_idle".into()))
         .then(Action::WaitFrames(1))
         // Switch to walk
-        .then(set_mode(HeroMode::Walk))
-        .then(Action::WaitFrames(4))
+        .then(request_mode(HeroMode::Walk))
+        .then(wait_for_mode(HeroMode::Walk, 90))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "hero transitioned to walk state",
             |diagnostics| {
@@ -227,8 +200,8 @@ fn build_directional() -> Scenario {
         .then(Action::Screenshot("directional_walk".into()))
         .then(Action::WaitFrames(1))
         // Switch to use_tool (one-shot)
-        .then(set_mode(HeroMode::UseTool))
-        .then(Action::WaitFrames(4))
+        .then(request_mode(HeroMode::UseTool))
+        .then(wait_for_mode(HeroMode::UseTool, 90))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "hero transitioned to use_tool one-shot",
             |diagnostics| {
@@ -286,8 +259,8 @@ fn build_easing() -> Scenario {
              the hero_frame counter advances (basic clip tick / easing progression check).",
         )
         .then(Action::WaitFrames(30))
-        .then(set_mode(HeroMode::Walk))
-        .then(Action::WaitFrames(6))
+        .then(request_mode(HeroMode::Walk))
+        .then(wait_for_mode(HeroMode::Walk, 90))
         .then(Action::Custom(Box::new(|world: &mut World| {
             let before = world.resource::<LabDiagnostics>().hero_frame;
             world.insert_resource(EasingFrameSnapshot(before));
@@ -420,16 +393,8 @@ fn build_character_motion() -> Scenario {
             "Drive the hero through a manual walk loop and a one-shot tool animation, mirroring the interactive character-animation example through the lab control surface.",
         )
         .then(Action::WaitFrames(30))
-        .then(set_mode(HeroMode::Walk))
-        .then(Action::WaitUntil {
-            label: "hero entered walk mode".into(),
-            condition: Box::new(|world: &World| {
-                world
-                    .get_resource::<LabDiagnostics>()
-                    .is_some_and(|diagnostics| diagnostics.hero_state == "walk")
-            }),
-            max_frames: 90,
-        })
+        .then(request_mode(HeroMode::Walk))
+        .then(wait_for_mode(HeroMode::Walk, 90))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "walk mode is active",
             |diagnostics| diagnostics.requested_mode == "walk"
@@ -441,16 +406,8 @@ fn build_character_motion() -> Scenario {
         ))
         .then(Action::Screenshot("spritesheet_character_motion_walk".into()))
         .then(Action::WaitFrames(1))
-        .then(set_mode(HeroMode::UseTool))
-        .then(Action::WaitUntil {
-            label: "tool one-shot played".into(),
-            condition: Box::new(|world: &World| {
-                world
-                    .get_resource::<LabDiagnostics>()
-                    .is_some_and(|diagnostics| diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip")
-            }),
-            max_frames: 180,
-        })
+        .then(request_mode(HeroMode::UseTool))
+        .then(wait_for_idle_after_one_shot(180))
         .then(assertions::resource_satisfies::<LabDiagnostics>(
             "tool one-shot completed and returned to idle",
             |diagnostics| diagnostics.impact_events >= 1 && diagnostics.hero_clip == "idle_clip",
